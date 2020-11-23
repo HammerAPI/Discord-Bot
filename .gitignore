@@ -1,0 +1,3 @@
+*.pyc
+info.py
+**/*__pycache__/

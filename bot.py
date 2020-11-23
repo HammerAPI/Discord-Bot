@@ -4,23 +4,22 @@ import info
 import random
 import time
 import scripts.word_ladder as wl
+import games.toothpick_takeaway as tpick
 
 
-PREFIX = "$"
 # Startup
-client = discord.Client()
-bot = commands.Bot(command_prefix="{}".format(PREFIX))
+PREFIX = ">"
+bot = commands.Bot(command_prefix=PREFIX, description="I cause trouble")
 
 # Globals
 dictionary = wl.build_dictionary()
-
+toothpick_takeaway = tpick.Game()
 
 @bot.event
 async def on_ready():
     print("{} has logged in".format(bot.user))
 
-
-@bot.event
+@bot.listen()
 async def on_message(message):
     if message.author == bot.user:
         return
@@ -30,14 +29,32 @@ async def on_message(message):
     if "test" in msg:
         await message.channel.send("test")
 
+    if msg[0] == "%":
+        pass
+
+##
+# Commands
+##
+
+@bot.command()
+async def foo(ctx):
+    await ctx.send("bar")
 
 @bot.command()
 async def ping(ctx):
-    '''
+    """
     Issues a ping and returns the latency
-    '''
+    """
     latency = bot.latency
     await ctx.send("Pong! " + str(latency))
+
+
+@bot.command()
+async def echo(ctx, *, content: str):
+    """
+    Echos the user's message back at them
+    """
+    await ctx.send(content)
 
 
 @bot.command()
@@ -101,5 +118,48 @@ async def ladder(ctx, start_word="", end_word=""):
     msg += "\nTime taken: " + str(end_time) + " seconds"
     await ctx.send(msg)
 
+@bot.command()
+async def tidus(ctx):
+    """
+    Tidus laugh
+    """
+    msg = "https://youtu.be/H47ow4_Cmk0"
+    await ctx.send(msg)
+
+@bot.command()
+async def toothpick(ctx, arg="10"):
+    """
+    Toothpick Takeaway game
+    """
+    # Parse input
+    try:
+        arg = int(arg)
+    except ValueError:
+        await ctx.send("Hey! That's not a number!")
+        return
+
+    # If the game is in progress, keep playing
+    if toothpick_takeaway.in_progress:
+        # If successful move
+        if toothpick_takeaway.move(str(ctx.author), arg):
+            # Announce move
+            await ctx.send(toothpick_takeaway.get_state(str(ctx.author), arg))
+
+            # If a winner is found, exit
+            if toothpick_takeaway.winner:
+                return
+
+            # Otherwise, let the bot move
+            bot_move = toothpick_takeaway.cpu_move()
+            toothpick_takeaway.move(bot.user, bot_move)
+
+            await ctx.send(toothpick_takeaway.get_state("\nI", bot_move))
+        else:
+            await ctx.send("Invalid move!")
+    else:
+        # Otherwise, start the game
+        toothpick_takeaway.play(arg)
+        msg = "Starting with {} toothpicks\nIt's your turn!".format(arg)
+        await ctx.send(msg)
 
 bot.run(info.TOK)
